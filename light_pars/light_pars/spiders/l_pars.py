@@ -1,3 +1,5 @@
+import csv
+
 import scrapy
 from openpyxl import Workbook
 
@@ -45,6 +47,9 @@ class LParsSpider(scrapy.Spider):
 
         except IndexError:
             return 0
+        with open('light.csv', 'w', newline='', encoding='utf-8') as file:
+            writer = csv.writer(file)
+            writer.writerow(['Название', 'Цена', 'Ссылка'])
         for i in l:
             response.follow(i)
             lights = response.css('div.lsooF')
@@ -56,6 +61,9 @@ class LParsSpider(scrapy.Spider):
 
                 # Сохраняем данные в XLSX
                 self.sheet.append([name, price, url])
+                with open('light.csv', 'a', newline='', encoding='utf-8') as file:
+                    writer = csv.writer(file)
+                    writer.writerow([name, price, url])
 
                 # Возвращаем данные для экспорта в JSON
                 yield {
@@ -68,4 +76,6 @@ class LParsSpider(scrapy.Spider):
 
     def closed(self, reason):
         self.workbook.save("output.xlsx")
+
+
 
