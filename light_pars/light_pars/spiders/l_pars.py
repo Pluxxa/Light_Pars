@@ -24,36 +24,47 @@ class LParsSpider(scrapy.Spider):
         self.sheet.append(["Name", "Price", "URL"])
 
     def parse(self, response):
-        lights = response.css('div.lsooF')
+        try:
+            links = []
+            link = response.css('div.ui-jDl24')
+            for i in link.css('a::attr(href)'):
+                if len(links) == 0:
+                    links.append(i)
+                else:
+                    flag = True
+                    for j in links:
+                        if i == j:
+                            flag = False
+                        else:
+                            continue
+                    if flag:
+                        links.append(i)
+                    else:
+                        continue
+            l = links[:-1]
 
-        for light in lights:
-            name = light.css('span::text').get()
-            price = light.css('div.q5Uds span::text').get()
-            url = response.urljoin(light.css('a').attrib['href'])
+        except IndexError:
+            return 0
+        for i in l:
+            response.follow(i)
+            lights = response.css('div.lsooF')
 
-            # Сохраняем данные в XLSX
-            self.sheet.append([name, price, url])
+            for light in lights:
+                name = light.css('span::text').get()
+                price = light.css('div.q5Uds span::text').get()
+                url = response.urljoin(light.css('a').attrib['href'])
 
-            # Возвращаем данные для экспорта в JSON
-            yield {
-                "name": name,
-                "price": price,
-                "url": url
-            }
+                # Сохраняем данные в XLSX
+                self.sheet.append([name, price, url])
 
-        # Переход на следующую страницу
-        response.follow('https://www.divan.ru/category/svet/page-2')
-        for i in range(7):
-            pages = response.css('div.ui-jDl24')
+                # Возвращаем данные для экспорта в JSON
+                yield {
+                    "name": name,
+                    "price": price,
+                    "url": url
+                }
 
-            url = pages.css('a').attrib['href']
-            print(url)
-            url = response.urljoin(pages.css('a').attrib['href'])
-            response.follow(url)
-        next_page = response.css('a.next::attr(href)').get()
-        #if next_page is not None:
-         #   print(next_page)
-          #  yield response.follow(next_page, self.parse)
+
 
     def closed(self, reason):
         self.workbook.save("output.xlsx")
